@@ -1,24 +1,32 @@
 package tests;
 
+import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static io.restassured.RestAssured.given;
+import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static io.restassured.RestAssured.get;
 
 public class ReqresApiTests {
 
-    String baseUrl = "https://reqres.in/api";
     String apiKey = "reqres-free-v1";
 
+    @BeforeAll
+    public static void setUp() {
+        RestAssured.baseURI = "https://reqres.in";
+        RestAssured.basePath = "/api";
+    }
 
     @Test
     @DisplayName("Получение одиночного пользователя по id")
     void getSingleUserTest() {
-        get(baseUrl + "/users/2")
+        given()
+                .header("x-api-key", apiKey)
+                .when()
+                .get("/users/2")
                 .then()
                 .log().status()
                 .log().body()
@@ -33,7 +41,7 @@ public class ReqresApiTests {
         given()
                 .header("x-api-key", apiKey)
                 .when()
-                .get(baseUrl + "/users/23")
+                .get("/users/23")
                 .then()
                 .log().status()
                 .log().body()
@@ -44,10 +52,11 @@ public class ReqresApiTests {
     @DisplayName("Проверка email 'michael.lawson@reqres.in' в списке пользователей")
     void verifyEmailInUserListTest() {
         given()
+                .header("x-api-key", apiKey)
                 .queryParam("page", 2)
                 .log().uri()
                 .when()
-                .get(baseUrl + "/users")
+                .get("/users")
                 .then()
                 .log().status()
                 .log().body()
@@ -59,19 +68,19 @@ public class ReqresApiTests {
     @DisplayName("Создание пользователя")
     void createUserTest() {
         String body = """
-                    {
-                         "name": "morpheus",
-                         "job": "leader"
-                     }
+                {
+                    "name": "morpheus",
+                    "job": "leader"
+                }
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .header("x-api-key", apiKey)
+                .contentType(ContentType.JSON)
                 .body(body)
                 .log().uri()
                 .when()
-                .post(baseUrl + "/users")
+                .post("/users")
                 .then()
                 .log().status()
                 .log().body()
@@ -85,19 +94,19 @@ public class ReqresApiTests {
     @DisplayName("Изменение информации о пользователе")
     void updateUserTest() {
         String body = """
-                    {
-                          "name": "morpheus",
-                          "job": "zion resident"
-                      }
+                {
+                    "name": "morpheus",
+                    "job": "zion resident"
+                }
                 """;
 
         given()
-                .contentType(ContentType.JSON)
                 .header("x-api-key", apiKey)
+                .contentType(ContentType.JSON)
                 .body(body)
                 .log().uri()
                 .when()
-                .put(baseUrl + "/users/2")
+                .put("/users/2")
                 .then()
                 .log().status()
                 .log().body()
@@ -105,6 +114,4 @@ public class ReqresApiTests {
                 .body("name", equalTo("morpheus"))
                 .body("job", equalTo("zion resident"));
     }
-
 }
-
