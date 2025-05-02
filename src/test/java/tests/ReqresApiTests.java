@@ -1,18 +1,23 @@
 package tests;
 
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
+import models.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static io.restassured.RestAssured.*;
-import static org.hamcrest.Matchers.*;
-import static org.hamcrest.core.IsEqual.equalTo;
+import static io.qameta.allure.Allure.step;
+import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.*;
+import static specs.CreateUserSpec.createUserRequestSpec;
+import static specs.CreateUserSpec.createUserResponseSpec;
+import static specs.GetUserListSpec.getUserListRequestSpec;
+import static specs.GetUserListSpec.getUserListResponseSpec;
+import static specs.GetUserSpec.*;
+import static specs.UpdateUserSpec.updateUserRequestSpec;
+import static specs.UpdateUserSpec.updateUserResponseSpec;
 
 public class ReqresApiTests {
-
-    String apiKey = "reqres-free-v1";
 
     @BeforeAll
     public static void setUp() {
@@ -23,95 +28,117 @@ public class ReqresApiTests {
     @Test
     @DisplayName("Получение одиночного пользователя по id")
     void getSingleUserTest() {
-        given()
-                .header("x-api-key", apiKey)
-                .when()
-                .get("/users/2")
-                .then()
-                .log().status()
-                .log().body()
-                .statusCode(200)
-                .body("data.id", equalTo(2))
-                .body("data.email", containsString("@reqres.in"));
+        getSingleUserTest(2);
+    }
+
+    void getSingleUserTest(int userId) {
+        SingleUserResponseModel response = step("Получение пользователя по id =" + userId, () ->
+                given(getSingleUserRequestSpec)
+                        .when()
+                        .get("/users/" + userId)
+                        .then()
+                        .spec(getSingleUserResponseSpec)
+                        .extract().as(SingleUserResponseModel.class));
+
+        step("Проверка данных пользователя", () -> {
+            assertEquals(userId, response.getData().getId());
+            assertTrue(response.getData().getEmail().contains("@reqres.in"));
+        });
     }
 
     @Test
     @DisplayName("Ошибка при запросе несуществующего пользователя - проверка 404 статус кода")
     void getNonExistentUserTest() {
-        given()
-                .header("x-api-key", apiKey)
-                .when()
-                .get("/users/23")
-                .then()
-                .log().status()
-                .log().body()
-                .statusCode(404);
+        getNonExistentUserTest(23);
+    }
+
+    void getNonExistentUserTest(int userId) {
+        step("Попытка получить несуществующего пользователя с id =" + userId, () ->
+                given(getSingleUserRequestSpec)
+                        .when()
+                        .get("/users/" + userId)
+                        .then()
+                        .spec(getSingleUser404ResponseSpec)
+        );
     }
 
     @Test
     @DisplayName("Проверка email 'michael.lawson@reqres.in' в списке пользователей")
     void verifyEmailInUserListTest() {
-        given()
-                .header("x-api-key", apiKey)
-                .queryParam("page", 2)
-                .log().uri()
-                .when()
-                .get("/users")
-                .then()
-                .log().status()
-                .log().body()
-                .statusCode(200)
-                .body("data.email", hasItem("michael.lawson@reqres.in"));
+        UserListResponseModel response = step("Получение списка пользователей на странице 2", () ->
+                given(getUserListRequestSpec)
+                        .queryParam("page", 2)
+                        .when()
+                        .get("/users")
+                        .then()
+                        .spec(getUserListResponseSpec)
+                        .extract().as(UserListResponseModel.class)
+        );
+
+        step("Проверка наличия email 'michael.lawson@reqres.in' в списке пользователей", () ->
+                assertTrue(
+                        response.getData().stream()
+                                .map(UserDataModel::getEmail)
+                                .anyMatch("michael.lawson@reqres.in"::equals)
+                )
+        );
     }
 
     @Test
     @DisplayName("Создание пользователя")
     void createUserTest() {
-        String body = """
-                {
-                    "name": "morpheus",
-                    "job": "leader"
-                }
-                """;
+        CreateUserRequestModel requestModel = new CreateUserRequestModel();
+        requestModel.setName("morpheus");
+        requestModel.setJob("leader");
 
-        given()
-                .header("x-api-key", apiKey)
-                .contentType(ContentType.JSON)
-                .body(body)
-                .log().uri()
-                .when()
-                .post("/users")
-                .then()
-                .log().status()
-                .log().body()
-                .statusCode(201)
-                .body("name", equalTo("morpheus"))
-                .body("job", equalTo("leader"))
-                .body("id", notNullValue());
+        CreateUserResponseModel response = step("Отправка запроса на создание пользователя", () ->
+                given(createUserRequestSpec)
+                        .body(requestModel)
+                        .when()
+                        .post("/users")
+                        .then()
+                        .spec(createUserResponseSpec)
+                        .extract().as(CreateUserResponseModel.class)
+        );
+
+        step("Проверка данных созданного пользователя", () -> {
+            assertEquals("morpheus", response.getName());
+            assertEquals("leader", response.getJob());
+            assertNotNull(response.getId());
+        });
     }
 
     @Test
     @DisplayName("Изменение информации о пользователе")
     void updateUserTest() {
-        String body = """
-                {
-                    "name": "morpheus",
-                    "job": "zion resident"
-                }
-                """;
+        updateUserTest(2);
+    }
 
-        given()
-                .header("x-api-key", apiKey)
-                .contentType(ContentType.JSON)
-                .body(body)
-                .log().uri()
-                .when()
-                .put("/users/2")
-                .then()
-                .log().status()
-                .log().body()
-                .statusCode(200)
-                .body("name", equalTo("morpheus"))
-                .body("job", equalTo("zion resident"));
+    void updateUserTest(int UserId) {
+        UpdateUserRequestModel requestModel = new UpdateUserRequestModel();
+        requestModel.setName("morpheus");
+        requestModel.setJob("zion resident");
+
+        UpdateUserResponseModel response = step("Отправка запроса на обновление пользователя c Id =" + UserId, () ->
+                given(updateUserRequestSpec)
+                        .body(requestModel)
+                        .when()
+                        .put("/users/" + UserId)
+                        .then()
+                        .spec(updateUserResponseSpec)
+                        .extract().as(UpdateUserResponseModel.class)
+        );
+
+        step("Проверка обновленных данных", () -> {
+            assertEquals("morpheus", response.getName());
+            assertEquals("zion resident", response.getJob());
+        });
     }
 }
+
+
+
+
+
+
+
