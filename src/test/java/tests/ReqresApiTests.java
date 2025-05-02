@@ -28,20 +28,16 @@ public class ReqresApiTests {
     @Test
     @DisplayName("Получение одиночного пользователя по id")
     void getSingleUserTest() {
-        getSingleUserTest(2);
-    }
-
-    void getSingleUserTest(int userId) {
-        SingleUserResponseModel response = step("Получение пользователя по id =" + userId, () ->
+        SingleUserResponseModel response = step("Получение пользователя по id =", () ->
                 given(getSingleUserRequestSpec)
                         .when()
-                        .get("/users/" + userId)
+                        .get("/users/2")
                         .then()
                         .spec(getSingleUserResponseSpec)
                         .extract().as(SingleUserResponseModel.class));
 
         step("Проверка данных пользователя", () -> {
-            assertEquals(userId, response.getData().getId());
+            assertEquals(2, response.getData().getId());
             assertTrue(response.getData().getEmail().contains("@reqres.in"));
         });
     }
@@ -49,14 +45,10 @@ public class ReqresApiTests {
     @Test
     @DisplayName("Ошибка при запросе несуществующего пользователя - проверка 404 статус кода")
     void getNonExistentUserTest() {
-        getNonExistentUserTest(23);
-    }
-
-    void getNonExistentUserTest(int userId) {
-        step("Попытка получить несуществующего пользователя с id =" + userId, () ->
+        step("Попытка получить несуществующего пользователя с id =", () ->
                 given(getSingleUserRequestSpec)
                         .when()
-                        .get("/users/" + userId)
+                        .get("/users/23")
                         .then()
                         .spec(getSingleUser404ResponseSpec)
         );
@@ -87,7 +79,7 @@ public class ReqresApiTests {
     @Test
     @DisplayName("Создание пользователя")
     void createUserTest() {
-        CreateUserRequestModel requestModel = new CreateUserRequestModel();
+        UserActionModel requestModel = new UserActionModel();
         requestModel.setName("morpheus");
         requestModel.setJob("leader");
 
@@ -111,22 +103,18 @@ public class ReqresApiTests {
     @Test
     @DisplayName("Изменение информации о пользователе")
     void updateUserTest() {
-        updateUserTest(2);
-    }
-
-    void updateUserTest(int UserId) {
-        UpdateUserRequestModel requestModel = new UpdateUserRequestModel();
+        UserActionModel requestModel = new UserActionModel();
         requestModel.setName("morpheus");
         requestModel.setJob("zion resident");
 
-        UpdateUserResponseModel response = step("Отправка запроса на обновление пользователя c Id =" + UserId, () ->
+        UserActionModel response = step("Отправка запроса на обновление пользователя c Id =", () ->
                 given(updateUserRequestSpec)
                         .body(requestModel)
                         .when()
-                        .put("/users/" + UserId)
+                        .put("/users/2")
                         .then()
                         .spec(updateUserResponseSpec)
-                        .extract().as(UpdateUserResponseModel.class)
+                        .extract().as(UserActionModel.class)
         );
 
         step("Проверка обновленных данных", () -> {

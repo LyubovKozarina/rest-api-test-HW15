@@ -3,7 +3,7 @@ package models;
 import lombok.Data;
 
 @Data
-public class UpdateUserRequestModel {
+public class UserActionModel {
     private String name;
     private String job;
 }
