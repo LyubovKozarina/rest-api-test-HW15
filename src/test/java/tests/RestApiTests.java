@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static io.qameta.allure.Allure.step;
 import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static specs.CreateUserSpec.createUserRequestSpec;
 import static specs.CreateUserSpec.createUserResponseSpec;
 import static specs.GetUserListSpec.getUserListRequestSpec;
@@ -17,7 +17,7 @@ import static specs.GetUserSpec.*;
 import static specs.UpdateUserSpec.updateUserRequestSpec;
 import static specs.UpdateUserSpec.updateUserResponseSpec;
 
-public class ReqresApiTests {
+public class RestApiTests {
 
     @BeforeAll
     public static void setUp() {
@@ -28,7 +28,7 @@ public class ReqresApiTests {
     @Test
     @DisplayName("Получение одиночного пользователя по id")
     void getSingleUserTest() {
-        SingleUserResponseModel response = step("Получение пользователя по id =", () ->
+        SingleUserResponseModel response = step("Получение пользователя по id = 2", () ->
                 given(getSingleUserRequestSpec)
                         .when()
                         .get("/users/2")
@@ -37,15 +37,15 @@ public class ReqresApiTests {
                         .extract().as(SingleUserResponseModel.class));
 
         step("Проверка данных пользователя", () -> {
-            assertEquals(2, response.getData().getId());
-            assertTrue(response.getData().getEmail().contains("@reqres.in"));
+            assertThat(response.getData().getId()).isEqualTo(2);
+            assertThat(response.getData().getEmail()).contains("@reqres.in");
         });
     }
 
     @Test
     @DisplayName("Ошибка при запросе несуществующего пользователя - проверка 404 статус кода")
     void getNonExistentUserTest() {
-        step("Попытка получить несуществующего пользователя с id =", () ->
+        step("Попытка получить несуществующего пользователя с id = 23", () ->
                 given(getSingleUserRequestSpec)
                         .when()
                         .get("/users/23")
@@ -68,11 +68,9 @@ public class ReqresApiTests {
         );
 
         step("Проверка наличия email 'michael.lawson@reqres.in' в списке пользователей", () ->
-                assertTrue(
-                        response.getData().stream()
-                                .map(UserDataModel::getEmail)
-                                .anyMatch("michael.lawson@reqres.in"::equals)
-                )
+                assertThat(response.getData())
+                        .extracting(UserDataModel::getEmail)
+                        .contains("michael.lawson@reqres.in")
         );
     }
 
@@ -94,9 +92,9 @@ public class ReqresApiTests {
         );
 
         step("Проверка данных созданного пользователя", () -> {
-            assertEquals("morpheus", response.getName());
-            assertEquals("leader", response.getJob());
-            assertNotNull(response.getId());
+            assertThat(response.getName()).isEqualTo("morpheus");
+            assertThat(response.getJob()).isEqualTo("leader");
+            assertThat(response.getId()).isNotNull();
         });
     }
 
@@ -107,7 +105,7 @@ public class ReqresApiTests {
         requestModel.setName("morpheus");
         requestModel.setJob("zion resident");
 
-        UserActionModel response = step("Отправка запроса на обновление пользователя c Id =", () ->
+        UserActionModel response = step("Отправка запроса на обновление пользователя c Id = 2", () ->
                 given(updateUserRequestSpec)
                         .body(requestModel)
                         .when()
@@ -118,8 +116,8 @@ public class ReqresApiTests {
         );
 
         step("Проверка обновленных данных", () -> {
-            assertEquals("morpheus", response.getName());
-            assertEquals("zion resident", response.getJob());
+            assertThat(response.getName()).isEqualTo("morpheus");
+            assertThat(response.getJob()).isEqualTo("zion resident");
         });
     }
 }
